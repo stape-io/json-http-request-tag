@@ -124,7 +124,7 @@ sendHttpRequest(data.url, (statusCode, headers, body) => {
   } else {
     data.gtmOnFailure();
   }
-}, {headers: postHeaders, method: 'POST', timeout: 500}, postBody);
+}, {headers: postHeaders, method: 'POST', timeout: 3000}, postBody);
 
 function escapeKeys(ob) {
 	var toReturn = {};
