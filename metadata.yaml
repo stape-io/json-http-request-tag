@@ -1,5 +1,8 @@
 homepage: "https://gtm-server.com/"
+documentation: "https://github.com/gtm-server/json-http-request-tag"
 versions:
+  - sha: bd5bd8218fc208c089ef7a437bed4b2bc63d533b
+    changeNotes: Update description.
   - sha: df7b1aa2fb7d27645cb1698645f7e8aca108fc45
     changeNotes: Add new options includeAllEventData and FlattenKeys.
   - sha: ced6300b9f636aeb9599f5a1ae227088a6402fd9
