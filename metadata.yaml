@@ -1,6 +1,8 @@
 homepage: "https://stape.io/"
 documentation: "https://github.com/stape-io/json-http-request-tag"
 versions:
+  - sha: 02577dbfc8be4af330ef12f0c0ba7a935f2af306
+    changeNotes: Move to Stape.
   - sha: bd5bd8218fc208c089ef7a437bed4b2bc63d533b
     changeNotes: Update description.
   - sha: df7b1aa2fb7d27645cb1698645f7e8aca108fc45
