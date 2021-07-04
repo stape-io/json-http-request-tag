@@ -1,5 +1,5 @@
-homepage: "https://gtm-server.com/"
-documentation: "https://github.com/gtm-server/json-http-request-tag"
+homepage: "https://stape.io/"
+documentation: "https://github.com/stape-io/json-http-request-tag"
 versions:
   - sha: bd5bd8218fc208c089ef7a437bed4b2bc63d533b
     changeNotes: Update description.

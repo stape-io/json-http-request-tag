@@ -3,9 +3,9 @@
 JSON HTTP Request - Custom Tag Template (Server) for Google Tag Manager.
 
 
-How to use it and more info can be found in [this article](https://gtm-server.com/how-to-send-all-ga-event-data-to-your-url-site-crm/).
+How to use it and more info can be found in [this article](https://stape.io/how-to-send-all-ga-event-data-to-your-url-site-crm/).
 
 
 ## Open Source
 
-JSON HTTP Request Tag for GTM Server Side is developed and maintained by [GTM Server Team](https://gtm-server.com/) under the Apache 2.0 license.
+JSON HTTP Request Tag for GTM Server Side is developed and maintained by [Stape Team](https://stape.io/) under the Apache 2.0 license.
