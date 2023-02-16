@@ -49,7 +49,7 @@ if (data.requestTimeout) {
 
 if (isLoggingEnabled) {
     logToConsole(JSON.stringify({
-        'Name': 'JSON Request',
+        'Name': 'JsonRequest',
         'Type': 'Request',
         'TraceId': traceId,
         'RequestMethod': data.requestMethod,
@@ -61,7 +61,7 @@ if (isLoggingEnabled) {
 sendHttpRequest(data.url, (statusCode, headers, body) => {
     if (isLoggingEnabled) {
         logToConsole(JSON.stringify({
-            'Name': 'JSON Request',
+            'Name': 'JsonRequest',
             'Type': 'Response',
             'TraceId': traceId,
             'ResponseStatusCode': statusCode,
