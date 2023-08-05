@@ -69,11 +69,12 @@ sendHttpRequest(data.url, (statusCode, headers, body) => {
             'ResponseBody': body,
         }));
     }
-
-    if (statusCode >= 200 && statusCode < 300) {
-        data.gtmOnSuccess();
-    } else {
-        data.gtmOnFailure();
+    if (!data.useOptimisticScenario) {
+        if (statusCode >= 200 && statusCode < 300) {
+            data.gtmOnSuccess();
+        } else {
+            data.gtmOnFailure();
+        }
     }
 }, requestOptions, postBody);
 
