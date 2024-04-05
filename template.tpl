@@ -150,6 +150,10 @@ ___TEMPLATE_PARAMETERS___
           {
             "value": "PUT",
             "displayValue": "PUT"
+          },
+          {
+            "value": "PATCH",
+            "displayValue": "PATCH"
           }
         ],
         "simpleValueType": true,
@@ -158,7 +162,7 @@ ___TEMPLATE_PARAMETERS___
           {
             "type": "REGEX",
             "args": [
-              "POST|PUT"
+              "POST|PUT|PATCH"
             ]
           }
         ]
