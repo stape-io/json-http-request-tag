@@ -305,6 +305,8 @@ sendHttpRequest(data.url, (statusCode, headers, body) => {
         } else {
             data.gtmOnFailure();
         }
+    } else {
+      data.gtmOnSuccess();
     }
 }, requestOptions, postBody);
 
