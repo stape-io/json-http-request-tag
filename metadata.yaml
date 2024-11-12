@@ -1,6 +1,8 @@
 homepage: "https://stape.io/"
 documentation: "https://github.com/stape-io/json-http-request-tag"
 versions:
+  - sha: a78ba5bfa5b30e1108e81829304d46778db82bba
+    changeNotes: Added ability to use optimisticScenario.
   - sha: 91fe8e69330444b4c72cf00604da7cc7d78db8e9
     changeNotes: Added support of PATCH request.
   - sha: 0b3a021ec9d32f010abf212ca7f85da62637c9e7

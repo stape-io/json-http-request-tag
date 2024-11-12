@@ -6,6 +6,7 @@ const JSON = require('JSON');
 const getRequestHeader = require('getRequestHeader');
 const logToConsole = require('logToConsole');
 const getContainerVersion = require('getContainerVersion');
+
 const containerVersion = getContainerVersion();
 const isDebug = containerVersion.debugMode;
 const isLoggingEnabled = determinateIsLoggingEnabled();
@@ -69,14 +70,18 @@ sendHttpRequest(data.url, (statusCode, headers, body) => {
             'ResponseBody': body,
         }));
     }
-
-    if (statusCode >= 200 && statusCode < 300) {
-        data.gtmOnSuccess();
-    } else {
-        data.gtmOnFailure();
+    if (!data.useOptimisticScenario) {
+        if (statusCode >= 200 && statusCode < 300) {
+            data.gtmOnSuccess();
+        } else {
+            data.gtmOnFailure();
+        }
     }
 }, requestOptions, postBody);
 
+if (data.useOptimisticScenario) {
+    return data.gtmOnSuccess();
+}
 
 function escapeKeys(ob) {
     var toReturn = {};
