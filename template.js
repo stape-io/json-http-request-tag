@@ -12,7 +12,7 @@ const isDebug = containerVersion.debugMode;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = getRequestHeader('trace-id');
 
-const postHeaders = {'Content-Type': 'application/json'};
+const postHeaders = { 'Content-Type': 'application/json' };
 let postBodyData = {};
 
 if (data.includeEventData) {
@@ -42,7 +42,7 @@ if (data.inside_array) {
 }
 
 const postBody = JSON.stringify(postBodyData);
-let requestOptions = {headers: postHeaders, method: data.requestMethod};
+let requestOptions = { headers: postHeaders, method: data.requestMethod };
 
 if (data.requestTimeout) {
     requestOptions.timeout = makeInteger(data.requestTimeout);
@@ -119,20 +119,27 @@ function createSimpleObject() {
     return makeTableMap(data.data, 'key', 'value');
 }
 
+function deepMerge(target, source) {
+    if (!target || typeof target !== 'object') {
+        target = {};
+    }
+    for (var key in source) {
+        if (!source.hasOwnProperty(key)) continue;
 
-function mergeObjects() {
-    let obj = {},
-        i = 0,
-        il = arguments.length,
-        key;
-    for (; i < il; i++) {
-        for (key in arguments[i]) {
-            if (arguments[i][key]) {
-                obj[key] = arguments[i][key];
-            }
+        var sv = source[key];
+        var tv = target[key];
+
+        if (sv && typeof sv === 'object') {
+            // no Array check, assume it's always an object-like
+            target[key] = deepMerge(
+                (tv && typeof tv === 'object') ? tv : {},
+                sv
+            );
+        } else {
+            target[key] = sv;
         }
     }
-    return obj;
+    return target;
 }
 
 function createNestedObject() {
@@ -144,7 +151,7 @@ function createNestedObject() {
         let strObj = strToObj(dotPath, data.data[key].value)[rootProperty];
 
         if (object[rootProperty]) {
-            object[rootProperty] = mergeObjects(object[rootProperty], strObj);
+            object[rootProperty] = deepMerge(object[rootProperty], strObj);
         } else {
             object[rootProperty] = strObj;
         }
