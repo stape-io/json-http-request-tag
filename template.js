@@ -16,175 +16,183 @@ const postHeaders = { 'Content-Type': 'application/json' };
 let postBodyData = {};
 
 if (data.includeEventData) {
-    postBodyData = getAllEventData();
+  postBodyData = getAllEventData();
 }
 
 if (data.headers) {
-    for (let key in data.headers) {
-        postHeaders[data.headers[key].key] = data.headers[key].value;
-    }
+  for (let key in data.headers) {
+    postHeaders[data.headers[key].key] = data.headers[key].value;
+  }
 }
 
 if (data.data) {
-    let postBodyCustomData = data.simple_object ? createSimpleObject() : createNestedObject();
+  let postBodyCustomData = data.simple_object ? createSimpleObject() : createNestedObject();
 
-    for (let key in postBodyCustomData) {
-        postBodyData[key] = postBodyCustomData[key];
-    }
+  for (let key in postBodyCustomData) {
+    postBodyData[key] = postBodyCustomData[key];
+  }
 }
 
 if (data.flatten) {
-    postBodyData = escapeKeys(flatten(postBodyData));
+  postBodyData = escapeKeys(flatten(postBodyData));
 }
 
 if (data.inside_array) {
-    postBodyData = [postBodyData];
+  postBodyData = [postBodyData];
 }
 
 const postBody = JSON.stringify(postBodyData);
 let requestOptions = { headers: postHeaders, method: data.requestMethod };
 
 if (data.requestTimeout) {
-    requestOptions.timeout = makeInteger(data.requestTimeout);
+  requestOptions.timeout = makeInteger(data.requestTimeout);
 }
 
 if (isLoggingEnabled) {
-    logToConsole(JSON.stringify({
-        'Name': 'JsonRequest',
-        'Type': 'Request',
-        'TraceId': traceId,
-        'RequestMethod': data.requestMethod,
-        'RequestUrl': data.url,
-        'RequestBody': postBodyData,
-    }));
+  logToConsole(
+    JSON.stringify({
+      Name: 'JsonRequest',
+      Type: 'Request',
+      TraceId: traceId,
+      RequestMethod: data.requestMethod,
+      RequestUrl: data.url,
+      RequestBody: postBodyData
+    })
+  );
 }
 
-sendHttpRequest(data.url, (statusCode, headers, body) => {
+sendHttpRequest(
+  data.url,
+  (statusCode, headers, body) => {
     if (isLoggingEnabled) {
-        logToConsole(JSON.stringify({
-            'Name': 'JsonRequest',
-            'Type': 'Response',
-            'TraceId': traceId,
-            'ResponseStatusCode': statusCode,
-            'ResponseHeaders': headers,
-            'ResponseBody': body,
-        }));
+      logToConsole(
+        JSON.stringify({
+          Name: 'JsonRequest',
+          Type: 'Response',
+          TraceId: traceId,
+          ResponseStatusCode: statusCode,
+          ResponseHeaders: headers,
+          ResponseBody: body
+        })
+      );
     }
     if (!data.useOptimisticScenario) {
-        if (statusCode >= 200 && statusCode < 300) {
-            data.gtmOnSuccess();
-        } else {
-            data.gtmOnFailure();
-        }
+      if (statusCode >= 200 && statusCode < 300) {
+        data.gtmOnSuccess();
+      } else {
+        data.gtmOnFailure();
+      }
     }
-}, requestOptions, postBody);
+  },
+  requestOptions,
+  postBody
+);
 
 if (data.useOptimisticScenario) {
-    return data.gtmOnSuccess();
+  return data.gtmOnSuccess();
 }
 
 function escapeKeys(ob) {
-    var toReturn = {};
+  var toReturn = {};
 
-    for (let key in ob) {
-        let newKey = key.split("-").join("_");
+  for (let key in ob) {
+    let newKey = key.split('-').join('_');
 
-        toReturn[newKey] = ob[key];
-    }
+    toReturn[newKey] = ob[key];
+  }
 
-    return toReturn;
+  return toReturn;
 }
 
 function flatten(ob) {
-    var toReturn = {};
+  var toReturn = {};
 
-    for (let i in ob) {
-        if (!ob.hasOwnProperty(i)) continue;
+  for (let i in ob) {
+    if (!ob.hasOwnProperty(i)) continue;
 
-        if ((typeof ob[i]) == 'object') {
-            var flatObject = flatten(ob[i]);
-            for (var x in flatObject) {
-                if (!flatObject.hasOwnProperty(x)) continue;
+    if (typeof ob[i] == 'object') {
+      var flatObject = flatten(ob[i]);
+      for (var x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
 
-                toReturn[i + '_' + x] = flatObject[x];
-            }
-        } else {
-            toReturn[i] = ob[i];
-        }
+        toReturn[i + '_' + x] = flatObject[x];
+      }
+    } else {
+      toReturn[i] = ob[i];
     }
-    return toReturn;
+  }
+  return toReturn;
 }
 
 function createSimpleObject() {
-    return makeTableMap(data.data, 'key', 'value');
+  return makeTableMap(data.data, 'key', 'value');
 }
 
 function deepMerge(target, source) {
-    if (!target || typeof target !== 'object') {
-        target = {};
-    }
-    for (var key in source) {
-        if (!source.hasOwnProperty(key)) continue;
+  if (!target || typeof target !== 'object') {
+    target = {};
+  }
+  for (var key in source) {
+    if (!source.hasOwnProperty(key)) continue;
 
-        var sv = source[key];
-        var tv = target[key];
+    var sv = source[key];
+    var tv = target[key];
 
-        if (sv && typeof sv === 'object') {
-            // no Array check, assume it's always an object-like
-            target[key] = deepMerge(
-                (tv && typeof tv === 'object') ? tv : {},
-                sv
-            );
-        } else {
-            target[key] = sv;
-        }
+    if (sv && typeof sv === 'object') {
+      // no Array check, assume it's always an object-like
+      target[key] = deepMerge(tv && typeof tv === 'object' ? tv : {}, sv);
+    } else {
+      target[key] = sv;
     }
-    return target;
+  }
+  return target;
 }
 
 function createNestedObject() {
-    let object = {};
+  let object = {};
 
-    for (let key in data.data) {
-        let dotPath = data.data[key].key;
-        let rootProperty = dotPath.split('.')[0];
-        let strObj = strToObj(dotPath, data.data[key].value)[rootProperty];
+  for (let key in data.data) {
+    let dotPath = data.data[key].key;
+    let rootProperty = dotPath.split('.')[0];
+    let strObj = strToObj(dotPath, data.data[key].value)[rootProperty];
 
-        if (object[rootProperty]) {
-            object[rootProperty] = deepMerge(object[rootProperty], strObj);
-        } else {
-            object[rootProperty] = strObj;
-        }
+    if (object[rootProperty]) {
+      object[rootProperty] = deepMerge(object[rootProperty], strObj);
+    } else {
+      object[rootProperty] = strObj;
     }
+  }
 
-    return object;
+  return object;
 }
 
 function strToObj(dotPath, val) {
-    let i, obj = {}, dotArr = dotPath.split('.');
-    let x = obj;
+  let i,
+    obj = {},
+    dotArr = dotPath.split('.');
+  let x = obj;
 
-    for (i = 0; i < dotArr.length - 1; i++) {
-        x = x[dotArr[i]] = {};
-    }
+  for (i = 0; i < dotArr.length - 1; i++) {
+    x = x[dotArr[i]] = {};
+  }
 
-    x[dotArr[i]] = val;
+  x[dotArr[i]] = val;
 
-    return obj;
+  return obj;
 }
 
 function determinateIsLoggingEnabled() {
-    if (!data.logType) {
-        return isDebug;
-    }
+  if (!data.logType) {
+    return isDebug;
+  }
 
-    if (data.logType === 'no') {
-        return false;
-    }
+  if (data.logType === 'no') {
+    return false;
+  }
 
-    if (data.logType === 'debug') {
-        return isDebug;
-    }
+  if (data.logType === 'debug') {
+    return isDebug;
+  }
 
-    return data.logType === 'always';
+  return data.logType === 'always';
 }
