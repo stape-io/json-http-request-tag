@@ -48,9 +48,9 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "CHECKBOX",
     "name": "includeEventData",
-    "checkboxText": "Include in the body all Event Data",
+    "checkboxText": "Include all Event Data in the request body",
     "simpleValueType": true,
-    "help": "If checked, will add to the request body all Event Data values."
+    "help": "If checked, all the Event Data values will be added to the request body."
   },
   {
     "type": "CHECKBOX",
@@ -62,7 +62,7 @@ ___TEMPLATE_PARAMETERS___
   {
     "type": "CHECKBOX",
     "name": "inside_array",
-    "checkboxText": "Put request object inside the array.",
+    "checkboxText": "Put the request object inside an array",
     "simpleValueType": true
   },
   {
@@ -70,7 +70,7 @@ ___TEMPLATE_PARAMETERS___
     "name": "useOptimisticScenario",
     "checkboxText": "Use Optimistic Scenario",
     "simpleValueType": true,
-    "help": "The tag will call gtmOnSuccess() without waiting for a response from the API"
+    "help": "The tag will call gtmOnSuccess() without waiting for a response from the API. This will speed up sGTM response time however your tag will always return the status fired successfully even in case it is not."
   },
   {
     "type": "GROUP",
@@ -191,7 +191,7 @@ ___TEMPLATE_PARAMETERS___
         "name": "flatten",
         "checkboxText": "Use flatten keys",
         "simpleValueType": true,
-        "help": "If checked, all nested objects will flatten with \"_\" and symbol \"-\"  changed to \"_\" in keys."
+        "help": "If checked, all nested objects will be transformed it into a single-level object, with their keys joined with an underscore (\"_\").\n\u003cbr/\u003e\nAny hyphens (\"-\") that might exist in the original keys will also be replaced with an underscore (\"_\")."
       }
     ]
   },
@@ -222,194 +222,318 @@ ___TEMPLATE_PARAMETERS___
         "defaultValue": "debug"
       }
     ]
+  },
+  {
+    "displayName": "BigQuery Logs Settings",
+    "name": "bigQueryLogsGroup",
+    "groupStyle": "ZIPPY_CLOSED",
+    "type": "GROUP",
+    "subParams": [
+      {
+        "type": "RADIO",
+        "name": "bigQueryLogType",
+        "radioItems": [
+          {
+            "value": "no",
+            "displayValue": "Do not log to BigQuery"
+          },
+          {
+            "value": "always",
+            "displayValue": "Log to BigQuery"
+          }
+        ],
+        "simpleValueType": true,
+        "defaultValue": "no"
+      },
+      {
+        "type": "GROUP",
+        "name": "logsBigQueryConfigGroup",
+        "groupStyle": "NO_ZIPPY",
+        "subParams": [
+          {
+            "type": "TEXT",
+            "name": "logBigQueryProjectId",
+            "displayName": "BigQuery Project ID",
+            "simpleValueType": true,
+            "help": "Optional.  \u003cbr/\u003e\u003cbr/\u003e  If omitted, it will be retrieved from the environment variable \u003cI\u003eGOOGLE_CLOUD_PROJECT\u003c/i\u003e where the server container is running. If the server container is running on Google Cloud, \u003cI\u003eGOOGLE_CLOUD_PROJECT\u003c/i\u003e will already be set to the Google Cloud project\u0027s ID."
+          },
+          {
+            "type": "TEXT",
+            "name": "logBigQueryDatasetId",
+            "displayName": "BigQuery Dataset ID",
+            "simpleValueType": true,
+            "valueValidators": [
+              {
+                "type": "NON_EMPTY"
+              }
+            ]
+          },
+          {
+            "type": "TEXT",
+            "name": "logBigQueryTableId",
+            "displayName": "BigQuery Table ID",
+            "simpleValueType": true,
+            "valueValidators": [
+              {
+                "type": "NON_EMPTY"
+              }
+            ]
+          }
+        ],
+        "enablingConditions": [
+          {
+            "paramName": "bigQueryLogType",
+            "paramValue": "always",
+            "type": "EQUALS"
+          }
+        ]
+      }
+    ]
   }
 ]
 
 
 ___SANDBOXED_JS_FOR_SERVER___
 
-const sendHttpRequest = require('sendHttpRequest');
+const BigQuery = require('BigQuery');
 const getAllEventData = require('getAllEventData');
+const getContainerVersion = require('getContainerVersion');
+const getRequestHeader = require('getRequestHeader');
+const getTimestampMillis = require('getTimestampMillis');
+const getType = require('getType');
+const JSON = require('JSON');
+const logToConsole = require('logToConsole');
 const makeInteger = require('makeInteger');
 const makeTableMap = require('makeTableMap');
-const JSON = require('JSON');
-const getRequestHeader = require('getRequestHeader');
-const logToConsole = require('logToConsole');
-const getContainerVersion = require('getContainerVersion');
+const sendHttpRequest = require('sendHttpRequest');
 
-const containerVersion = getContainerVersion();
-const isDebug = containerVersion.debugMode;
-const isLoggingEnabled = determinateIsLoggingEnabled();
-const traceId = getRequestHeader('trace-id');
+/*==============================================================================
+==============================================================================*/
 
-const postHeaders = {'Content-Type': 'application/json'};
+const eventData = getAllEventData();
+
+const url = getUrl(eventData);
+if (url && url.lastIndexOf('https://gtm-msr.appspot.com/', 0) === 0) {
+  return data.gtmOnSuccess();
+}
+
+const postHeaders = { 'Content-Type': 'application/json' };
 let postBodyData = {};
 
 if (data.includeEventData) {
-    postBodyData = getAllEventData();
+  postBodyData = getAllEventData();
 }
 
 if (data.headers) {
-    for (let key in data.headers) {
-        postHeaders[data.headers[key].key] = data.headers[key].value;
-    }
+  for (let key in data.headers) {
+    postHeaders[data.headers[key].key] = data.headers[key].value;
+  }
 }
 
 if (data.data) {
-    let postBodyCustomData = data.simple_object ? createSimpleObject() : createNestedObject();
+  const postBodyCustomData = data.simple_object ? createSimpleObject() : createNestedObject();
 
-    for (let key in postBodyCustomData) {
-        postBodyData[key] = postBodyCustomData[key];
-    }
+  for (let key in postBodyCustomData) {
+    postBodyData[key] = postBodyCustomData[key];
+  }
 }
 
 if (data.flatten) {
-    postBodyData = escapeKeys(flatten(postBodyData));
+  postBodyData = escapeKeys(flatten(postBodyData));
 }
 
 if (data.inside_array) {
-    postBodyData = [postBodyData];
+  postBodyData = [postBodyData];
 }
 
 const postBody = JSON.stringify(postBodyData);
-let requestOptions = {headers: postHeaders, method: data.requestMethod};
+const requestOptions = { headers: postHeaders, method: data.requestMethod };
 
 if (data.requestTimeout) {
-    requestOptions.timeout = makeInteger(data.requestTimeout);
+  requestOptions.timeout = makeInteger(data.requestTimeout);
 }
 
-if (isLoggingEnabled) {
-    logToConsole(JSON.stringify({
-        'Name': 'JsonRequest',
-        'Type': 'Request',
-        'TraceId': traceId,
-        'RequestMethod': data.requestMethod,
-        'RequestUrl': data.url,
-        'RequestBody': postBodyData,
-    }));
-}
+log({
+  Name: 'JsonRequest',
+  Type: 'Request',
+  RequestMethod: data.requestMethod,
+  RequestUrl: data.url,
+  RequestBody: postBodyData
+});
 
-sendHttpRequest(data.url, (statusCode, headers, body) => {
-    if (isLoggingEnabled) {
-        logToConsole(JSON.stringify({
-            'Name': 'JsonRequest',
-            'Type': 'Response',
-            'TraceId': traceId,
-            'ResponseStatusCode': statusCode,
-            'ResponseHeaders': headers,
-            'ResponseBody': body,
-        }));
-    }
+sendHttpRequest(
+  data.url,
+  (statusCode, headers, body) => {
+    log({
+      Name: 'JsonRequest',
+      Type: 'Response',
+      ResponseStatusCode: statusCode,
+      ResponseHeaders: headers,
+      ResponseBody: body
+    });
+
     if (!data.useOptimisticScenario) {
-        if (statusCode >= 200 && statusCode < 300) {
-            data.gtmOnSuccess();
-        } else {
-            data.gtmOnFailure();
-        }
+      if (statusCode >= 200 && statusCode < 300) data.gtmOnSuccess();
+      else data.gtmOnFailure();
     }
-}, requestOptions, postBody);
+  },
+  requestOptions,
+  postBody
+);
 
 if (data.useOptimisticScenario) {
-    return data.gtmOnSuccess();
+  return data.gtmOnSuccess();
 }
 
+/*==============================================================================
+  Vendor related functions
+==============================================================================*/
+
 function escapeKeys(ob) {
-    var toReturn = {};
+  const toReturn = {};
 
-    for (let key in ob) {
-        let newKey = key.split("-").join("_");
+  for (let key in ob) {
+    const newKey = key.split('-').join('_');
+    toReturn[newKey] = ob[key];
+  }
 
-        toReturn[newKey] = ob[key];
-    }
-
-    return toReturn;
+  return toReturn;
 }
 
 function flatten(ob) {
-    var toReturn = {};
+  const toReturn = {};
 
-    for (let i in ob) {
-        if (!ob.hasOwnProperty(i)) continue;
+  for (let i in ob) {
+    if (!ob.hasOwnProperty(i)) continue;
 
-        if ((typeof ob[i]) == 'object') {
-            var flatObject = flatten(ob[i]);
-            for (var x in flatObject) {
-                if (!flatObject.hasOwnProperty(x)) continue;
-
-                toReturn[i + '_' + x] = flatObject[x];
-            }
-        } else {
-            toReturn[i] = ob[i];
-        }
+    if (getType(ob[i]) === 'object') {
+      const flatObject = flatten(ob[i]);
+      for (let x in flatObject) {
+        if (!flatObject.hasOwnProperty(x)) continue;
+        toReturn[i + '_' + x] = flatObject[x];
+      }
+    } else {
+      toReturn[i] = ob[i];
     }
-    return toReturn;
+  }
+
+  return toReturn;
 }
 
 function createSimpleObject() {
-    return makeTableMap(data.data, 'key', 'value');
-}
-
-
-function mergeObjects() {
-    let obj = {},
-        i = 0,
-        il = arguments.length,
-        key;
-    for (; i < il; i++) {
-        for (key in arguments[i]) {
-            if (arguments[i][key]) {
-                obj[key] = arguments[i][key];
-            }
-        }
-    }
-    return obj;
+  return makeTableMap(data.data, 'key', 'value');
 }
 
 function createNestedObject() {
-    let object = {};
+  const result = {};
 
-    for (let key in data.data) {
-        let dotPath = data.data[key].key;
-        let rootProperty = dotPath.split('.')[0];
-        let strObj = strToObj(dotPath, data.data[key].value)[rootProperty];
+  data.data.forEach((item) => {
+    const path = item.key.split('.');
+    path.reduce((acc, key, index) => {
+      const isLastKey = index === path.length - 1;
+      if (isLastKey) acc[key] = item.value;
+      else acc[key] = acc[key] || {};
+      return acc[key];
+    }, result);
+  });
 
-        if (object[rootProperty]) {
-            object[rootProperty] = mergeObjects(object[rootProperty], strObj);
-        } else {
-            object[rootProperty] = strObj;
-        }
-    }
-
-    return object;
+  return result;
 }
 
-function strToObj(dotPath, val) {
-    let i, obj = {}, dotArr = dotPath.split('.');
-    let x = obj;
+/*==============================================================================
+  Helpers
+==============================================================================*/
 
-    for (i = 0; i < dotArr.length - 1; i++) {
-        x = x[dotArr[i]] = {};
+function getUrl(eventData) {
+  return eventData.page_location || eventData.page_referrer || getRequestHeader('referer');
+}
+
+function log(rawDataToLog) {
+  const logDestinationsHandlers = {};
+  if (determinateIsLoggingEnabled()) logDestinationsHandlers.console = logConsole;
+  if (determinateIsLoggingEnabledForBigQuery()) logDestinationsHandlers.bigQuery = logToBigQuery;
+
+  rawDataToLog.TraceId = getRequestHeader('trace-id');
+
+  const keyMappings = {
+    // No transformation for Console is needed.
+    bigQuery: {
+      Name: 'tag_name',
+      Type: 'type',
+      TraceId: 'trace_id',
+      EventName: 'event_name',
+      RequestMethod: 'request_method',
+      RequestUrl: 'request_url',
+      RequestBody: 'request_body',
+      ResponseStatusCode: 'response_status_code',
+      ResponseHeaders: 'response_headers',
+      ResponseBody: 'response_body'
+    }
+  };
+
+  for (const logDestination in logDestinationsHandlers) {
+    const handler = logDestinationsHandlers[logDestination];
+    if (!handler) continue;
+
+    const mapping = keyMappings[logDestination];
+    const dataToLog = mapping ? {} : rawDataToLog;
+
+    if (mapping) {
+      for (const key in rawDataToLog) {
+        const mappedKey = mapping[key] || key;
+        dataToLog[mappedKey] = rawDataToLog[key];
+      }
     }
 
-    x[dotArr[i]] = val;
+    handler(dataToLog);
+  }
+}
 
-    return obj;
+function logConsole(dataToLog) {
+  logToConsole(JSON.stringify(dataToLog));
+}
+
+function logToBigQuery(dataToLog) {
+  const connectionInfo = {
+    projectId: data.logBigQueryProjectId,
+    datasetId: data.logBigQueryDatasetId,
+    tableId: data.logBigQueryTableId
+  };
+
+  dataToLog.timestamp = getTimestampMillis();
+
+  ['request_body', 'response_headers', 'response_body'].forEach((p) => {
+    dataToLog[p] = JSON.stringify(dataToLog[p]);
+  });
+
+  BigQuery.insert(connectionInfo, [dataToLog], { ignoreUnknownValues: true });
 }
 
 function determinateIsLoggingEnabled() {
-    if (!data.logType) {
-        return isDebug;
-    }
+  const containerVersion = getContainerVersion();
+  const isDebug = !!(
+    containerVersion &&
+    (containerVersion.debugMode || containerVersion.previewMode)
+  );
 
-    if (data.logType === 'no') {
-        return false;
-    }
+  if (!data.logType) {
+    return isDebug;
+  }
 
-    if (data.logType === 'debug') {
-        return isDebug;
-    }
+  if (data.logType === 'no') {
+    return false;
+  }
 
-    return data.logType === 'always';
+  if (data.logType === 'debug') {
+    return isDebug;
+  }
+
+  return data.logType === 'always';
+}
+
+function determinateIsLoggingEnabledForBigQuery() {
+  if (data.bigQueryLogType === 'no') return false;
+  return data.bigQueryLogType === 'always';
 }
 
 
@@ -484,6 +608,21 @@ ___SERVER_PERMISSIONS___
                     "string": "trace-id"
                   }
                 ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "referer"
+                  }
+                ]
               }
             ]
           }
@@ -551,6 +690,67 @@ ___SERVER_PERMISSIONS___
         "versionId": "1"
       },
       "param": []
+    },
+    "isRequired": true
+  },
+  {
+    "instance": {
+      "key": {
+        "publicId": "access_bigquery",
+        "versionId": "1"
+      },
+      "param": [
+        {
+          "key": "allowedTables",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "projectId"
+                  },
+                  {
+                    "type": 1,
+                    "string": "datasetId"
+                  },
+                  {
+                    "type": 1,
+                    "string": "tableId"
+                  },
+                  {
+                    "type": 1,
+                    "string": "operation"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "*"
+                  },
+                  {
+                    "type": 1,
+                    "string": "write"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "clientAnnotations": {
+      "isEditedByUser": true
     },
     "isRequired": true
   }
