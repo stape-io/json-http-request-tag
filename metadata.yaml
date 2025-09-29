@@ -1,6 +1,8 @@
-homepage: "https://stape.io/"
-documentation: "https://github.com/stape-io/json-http-request-tag"
+homepage: 'https://stape.io/'
+documentation: 'https://github.com/stape-io/json-http-request-tag'
 versions:
+  - sha: 0f28e7bee041fdbad6884d013432ae7ebafdb15b
+    changeNotes: Preserved nested fields in the request object body. Added BigQuery logging support.
   - sha: a78ba5bfa5b30e1108e81829304d46778db82bba
     changeNotes: Added ability to use optimisticScenario.
   - sha: 91fe8e69330444b4c72cf00604da7cc7d78db8e9
