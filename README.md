@@ -10,3 +10,6 @@ This tag is highly flexible, enabling you to forward data from your server-side 
 ## Open Source
 
 The **JSON HTTP Request Tag for GTM Server Side** is developed and maintained by the [Stape Team](https://stape.io/) under the Apache 2.0 license.
+
+### GTM Gallery Status
+🟢 [Listed](https://tagmanager.google.com/gallery/#/owners/stape-io/templates/json-http-request-tag)
