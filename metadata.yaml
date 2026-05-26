@@ -1,6 +1,8 @@
 homepage: 'https://stape.io/'
 documentation: 'https://github.com/stape-io/json-http-request-tag'
 versions:
+  - sha: 9b2647346bbcc929a0ccd5d4e3f16b8f0789667d
+    changeNotes: Logging removal.
   - sha: 0f28e7bee041fdbad6884d013432ae7ebafdb15b
     changeNotes: Preserved nested fields in the request object body. Added BigQuery logging support.
   - sha: a78ba5bfa5b30e1108e81829304d46778db82bba
